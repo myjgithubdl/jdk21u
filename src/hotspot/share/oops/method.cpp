@@ -1133,14 +1133,17 @@ void Method::set_not_osr_compilable(const char* reason, int comp_level, bool rep
 void Method::clear_code() {
   // this may be null if c2i adapters have not been made yet
   // Only should happen at allocate time.
+  // 清除_from_interpreted_entry，使其再次指向c2i适配器
   if (adapter() == nullptr) {
     _from_compiled_entry    = nullptr;
   } else {
     _from_compiled_entry    = adapter()->get_c2i_entry();
   }
+  // 将_from_interpreted_entry再次指向解释器入口
   OrderAccess::storestore();
   _from_interpreted_entry = _i2i_entry;
   OrderAccess::storestore();
+  // 取消指向机器代码
   _code = nullptr;
 }
 
@@ -1210,9 +1213,12 @@ void Method::link_method(const methodHandle& h_method, TRAPS) {
   assert(this == h_method(), "wrong h_method()" );
 
   assert(adapter() == nullptr, "init'd to null");
+
+  // 解释器入口地址
   address entry = Interpreter::entry_for_method(h_method);
   assert(entry != nullptr, "interpreter entry must be non-null");
   // Sets both _i2i_entry and _from_interpreted_entry
+  // 设置_i2i_entry和_from_interpreted_entry都指向解释器入口
   set_interpreter_entry(entry);
 
   // Don't overwrite already registered native entries.
@@ -1230,6 +1236,7 @@ void Method::link_method(const methodHandle& h_method, TRAPS) {
   // called from the vtable.  We need adapters on such methods that get loaded
   // later.  Ditto for mega-morphic itable calls.  If this proves to be a
   // problem we'll make these lazily later.
+  // 设置_from_compiled_entry为c2i适配器入口
   (void) make_adapters(h_method, CHECK);
 
   // ONLY USE the h_method now as make_adapter may have blocked
@@ -1296,6 +1303,7 @@ void Method::set_code(const methodHandle& mh, CompiledMethod *code) {
   // These writes must happen in this order, because the interpreter will
   // directly jump to from_interpreted_entry which jumps to an i2c adapter
   // which jumps to _from_compiled_entry.
+  // 设置编译好的机器代码
   mh->_code = code;             // Assign before allowing compiled code to exec
 
   int comp_level = code->comp_level();
@@ -1305,6 +1313,7 @@ void Method::set_code(const methodHandle& mh, CompiledMethod *code) {
     mh->set_highest_comp_level(comp_level);
   }
 
+  // 设置解释器入口点为编译后的机器代码
   OrderAccess::storestore();
   mh->_from_compiled_entry = code->verified_entry_point();
   OrderAccess::storestore();

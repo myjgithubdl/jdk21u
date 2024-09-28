@@ -92,16 +92,21 @@ class Method : public Metadata {
   Symbol* _name;
 #endif
   // Entry point for calling both from and to the interpreter.
+  // 定点解释器入口。方法调用会通过它进入解释器的世界，该字段一经设置后面不再改变。通过它一定能进入解释器。
   address _i2i_entry;           // All-args-on-stack calling convention
   // Entry point for calling from compiled code, to compiled code if it exists
   // or else the interpreter.
+  // 编译器入口。最开始指向c2i适配器入口，在字节码经过编译后会改变地址，指向编译好的代码。
   volatile address _from_compiled_entry;        // Cache of: _code ? _code->entry_point() : _adapter->c2i_entry()
   // The entry point for calling both from and to compiled code is
   // "_code->entry_point()".  Because of tiered compilation and de-opt, this
   // field can come and go.  It can transition from null to not-null at any
   // time (whenever a compile completes).  It can transition from not-null to
   // null only at safepoints (because of a de-opt).
+  // 代码入口。当编译器完成编译后会指向编译后的本地代码。
   CompiledMethod* volatile _code;                       // Points to the corresponding piece of native code
+
+  // 解释器入口。最开始与_i2i_entry指向同一个地方，在字节码经过JIT编译成机器代码后会改变，指向i2c适配器入口。
   volatile address           _from_interpreted_entry; // Cache of _code ? _adapter->i2c_entry() : _i2i_entry
 
   // Constructor

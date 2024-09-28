@@ -807,6 +807,7 @@ void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
     //         "i2c adapter must return to an interpreter frame");
     __ block_comment("verify_i2c { ");
     // Pick up the return address
+    // 将解释器栈顶放入rax
     __ movptr(rax, Address(rsp, 0));
     Label L_ok;
     if (Interpreter::code() != nullptr) {
